@@ -1,30 +1,32 @@
 {
-  "name": "formal-console",
-  "version": "1.0.3",
-  "description": "Overrides console functions in Node.js to have a more formal structure",
+  "name": "graylogger",
+  "version": "0.0.1",
+  "description": "Overrides console functions in Node.js and logging to GrayLog server",
   "main": "index.js",
   "scripts": {
     "test": "test/test.sh"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Juravenator/formal-console.git"
+    "url": "git+https://github.com/iplr/graylogger.git"
   },
   "keywords": [
     "node",
     "nodejs",
     "console",
-    "logging"
+    "logging",
+    "graylog"
   ],
-  "author": "Glenn Dirkx",
+  "author": "iLia Lumpov",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/Juravenator/formal-console/issues"
+    "url": "https://github.com/iplr/graylogger"
   },
-  "homepage": "https://github.com/Juravenator/formal-console#readme",
+  "homepage": "https://github.com/iplr/graylogger#readme",
   "dependencies": {
     "moment": "^2.17.0",
     "stringz": "^0.1.1",
-    "terminal-kit": "^0.25.4"
+    "terminal-kit": "^0.25.4",
+    "http": "*"
   }
 }
