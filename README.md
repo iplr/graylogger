@@ -5,7 +5,14 @@
 [![Requirements Status](https://requires.io/github/Juravenator/formal-console/requirements.svg?branch=master)](https://requires.io/github/Juravenator/formal-console/requirements/?branch=master)
 [![MIT license](http://img.shields.io/badge/license-MIT-brightgreen.svg)](http://opensource.org/licenses/MIT)
 
-Extends console object to present a more useful log output by adding the log type, timestamp, and fancy colors.
+Extends console object to present:
+ - a more useful log output by adding the log type,
+ - timestamp,
+ - fancy colors,
+ - logging to remote GrayLog server,
+ - handle runtime errors and reach logging;
+
+Fork of https://github.com/Juravenator/formal-console
 
 ![fancy demo](demo.png)
 
@@ -13,7 +20,7 @@ Since this extends the console object, you only need to import & configure it on
 
 ## Usage
 
-Install the module by executing `npm i -S formal-console`.
+Install the module by executing `npm i -S graylogger`.
 
 ```js
 var consoleConfig = require('formal-console');

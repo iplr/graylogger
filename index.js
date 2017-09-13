@@ -31,7 +31,7 @@ module.exports.options = {
     error: [term.error.bgRed.white, module.exports.nativeError],
     warn: [term.error.bgYellow.white, module.exports.nativeError],
     info: [term, module.exports.nativeLog],
-    debug: [term, module.exports.nativeLog],
+    debug: [term.green, module.exports.nativeLog],
     success: [term.bgGreen.white, module.exports.nativeLog]
   },
   // a function that takes a date and returns a string
@@ -210,3 +210,7 @@ module.exports.handleExceptions = () => {
   process.on("uncaughtException", exception.handler.bind(exception));
 // todo: is it need handle? process.on(SIGUSR1)
 }
+
+
+// todo: add git support like this https://github.com/observing/exception
+// todo:
