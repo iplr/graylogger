@@ -1,4 +1,4 @@
-# formal-console
+# graylogger
 [![npm version](https://badge.fury.io/js/formal-console.svg)](https://badge.fury.io/js/formal-console)
 [![Build Status](https://travis-ci.org/Juravenator/responsive-columns.svg?branch=master)](https://travis-ci.org/Juravenator/responsive-columns)
 [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/Juravenator/formal-console/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/Juravenator/formal-console/?branch=master)
@@ -20,10 +20,10 @@ Since this extends the console object, you only need to import & configure it on
 
 ## Usage
 
-Install the module by executing `npm i -S graylogger`.
+Install the module by executing `npm i -S graylogger`
 
 ```js
-var consoleConfig = require('formal-console');
+var consoleConfig = require('graylogger');
 console.log("Hello, World!");
 console.log("test with object", {test: "test"}, new Date());
 console.log("%s: %s", "test with substitution", "ok?");
@@ -54,6 +54,31 @@ consoleConfig.disable('debug');
 console.debug("debug output is disabled, this will do nothing");
 consoleConfig.enable('debug');
 ```
+
+# GrayLog
+
+```js
+consoleConfig.grayLog({
+  logHost: 'graylogger',
+  host: '8.8.8.8'
+});
+```
+
+logHost is host (source) scope of logging.
+
+# Runtime error handle
+
+```js
+consoleConfig.handleExceptions();
+```
+
+You will see in log all runtime errors in full info.
+
+```js
+consoleConfig.options.grayLog.quitOnException = false;
+```
+
+if you need do not interrupt script's execution.
 
 ## Custom output types
 
