@@ -26,8 +26,8 @@ module.exports.disable = type => loggerTypes[type] = false;
 module.exports.isEnabled = type => loggerTypes[type];
 
 module.exports.options = {
-  typePadding: '         ',       // dictates the width of the type prefix
-  styles: {                       // contains term styles for the various prefixes
+  typePadding: '         ', // dictates the width of the type prefix
+  styles: { // contains term styles for the various prefixes
     error: [term.error.bgRed.white, module.exports.nativeError],
     warn: [term.error.bgYellow.white, module.exports.nativeError],
     info: [term, module.exports.nativeLog],
@@ -45,18 +45,21 @@ module.exports.options = {
 
 var getLogTypePrefix = type => ` [${type}] ${module.exports.options.typePadding.substring(stringz.length(type) + 4)}`;
 var getPrefix = type => getLogTypePrefix(type) + module.exports.options.dateFormatter(new Date()) + " ";
-module.exports.printPrefix = (type, t = term) => {t(getPrefix(type));t.styleReset("| ")};
+module.exports.printPrefix = (type, t = term) => {
+  t(getPrefix(type));
+  t.styleReset("| ")
+};
 
 function simpleLogger(logData) {
-//  module.exports.nativeLog('simpleLogger: '+JSON.stringify(logData.messages[0]));
+  //  module.exports.nativeLog('simpleLogger: '+JSON.stringify(logData.messages[0]));
 
-//  module.exports.nativeLog('simpleLogger: msg typeof:'+Object.prototype.toString.call(logData.messages[0]));
+  //  module.exports.nativeLog('simpleLogger: msg typeof:'+Object.prototype.toString.call(logData.messages[0]));
 
   var TYPE = logData.messageType == "success" ? "OK" : logData.messageType.toUpperCase();
   if (loggerTypes[logData.messageType]) {
     module.exports.printPrefix(TYPE, module.exports.options.styles[logData.messageType][0]);
     module.exports.options.styles[logData.messageType][1].apply(this, getMessage(logData.messages));
-// todo: do I need to use callback here?
+    // todo: do I need to use callback here?
     sendHTTPGelf(logData);
   }
 }
@@ -64,7 +67,11 @@ function simpleLogger(logData) {
 module.exports.makeSimpleLogger = type => {
   module.exports.enable(type);
   global.console[type] = function() {
-    simpleLogger({'messageType': type, 'messages': arguments, '_messagesObj_type': Object.prototype.toString.call(arguments)});
+    simpleLogger({
+      'messageType': type,
+      'messages': arguments,
+      '_messagesObj_type': Object.prototype.toString.call(arguments)
+    });
   }
 }
 
@@ -100,13 +107,13 @@ module.exports.makeCustomLogger("error", function() {
 */
 
 module.exports.grayLog = (opt) => {
-// todo: add to source default os.hostname?
+  // todo: add to source default os.hostname?
   module.exports.options.grayLog.logHost = opt.hasOwnProperty('logHost') ? opt.logHost : '';
   module.exports.options.grayLog.host = opt.hasOwnProperty('host') ? opt.host : '';
   module.exports.options.grayLog.port = opt.hasOwnProperty('port') ? opt.port : 12201;
   module.exports.options.grayLog.path = opt.hasOwnProperty('path') ? opt.path : '/gelf';
 
-// todo: check connections to graylog and callback w/ status
+  // todo: check connections to graylog and callback w/ status
 
   module.exports.options.grayLog.enabled = true;
 }
@@ -116,8 +123,7 @@ function getMessage(messages) {
   if (Object.prototype.toString.call(messages[0]) == '[object Object]') {
     if (messages[0].hasOwnProperty('short_message')) {
       messages[0] = messages[0].short_message;
-    }
-    else {
+    } else {
       messages[0] = JSON.stringify(messages[0]);
     }
   }
@@ -127,25 +133,25 @@ function getMessage(messages) {
 
 function sendHTTPGelf(logData, callback) {
   if (!module.exports.options.grayLog.enabled) {
-//    callback(throw new Error('GrayLog disabled'));
+    //    callback(throw new Error('GrayLog disabled'));
     return;
   }
 
-// use try, чтобы исключить зацикливание ошибок, логирование которых появится при выполнении
-// todo: надо брать дополнительные поля из logData, которые начинаются с "_" и включать в gelf
-// todo: queue if undelivered message
-// todo: add local time zone
-// todo: use callback?''
+  // use try, чтобы исключить зацикливание ошибок, логирование которых появится при выполнении
+  // todo: надо брать дополнительные поля из logData, которые начинаются с "_" и включать в gelf
+  // todo: queue if undelivered message
+  // todo: add local time zone
+  // todo: use callback?''
 
-//  module.exports.nativeLog('sendHTTPGelf:'+JSON.stringify(logData));
+  //  module.exports.nativeLog('sendHTTPGelf:'+JSON.stringify(logData));
 
   var locMsg = {};
 
-//  module.exports.nativeLog('typeof: '+Object.prototype.toString.call(logData.messages[0]));
+  //  module.exports.nativeLog('typeof: '+Object.prototype.toString.call(logData.messages[0]));
 
   if (Object.prototype.toString.call(logData.messages[0]) == '[object Error]') {
     locMsg = {
-      short_message: 'Error: '+(logData.messages[0].code || '')+(logData.messages[0].message || logData.messages[0]),
+      short_message: 'Error: ' + (logData.messages[0].code || '') + (logData.messages[0].message || logData.messages[0]),
       '_error': 1,
       full_message: ''
     }
@@ -154,11 +160,10 @@ function sendHTTPGelf(logData, callback) {
       locMsg['_error'] = 2;
     }
 
-    locMsg.full_message = locMsg.full_message+'\nprocess versions: '+JSON.stringify(process.versions, null, 4)+'\nmemory usage:'+JSON.stringify(process.memoryUsage(), null, 4);
-  }
-  else if (Object.prototype.toString.call(logData.messages[0]) == '[object Object]')
-    // todo: additional check for gelf format?
-    locMsg = logData.messages[0];
+    locMsg.full_message = locMsg.full_message + '\nprocess versions: ' + JSON.stringify(process.versions, null, 4) + '\nmemory usage:' + JSON.stringify(process.memoryUsage(), null, 4);
+  } else if (Object.prototype.toString.call(logData.messages[0]) == '[object Object]')
+    if (logData.messages[0].hasOwnProperty('short_message')) locMsg = logData.messages[0]
+    else locMsg = JSON.stringify(logData.messages[0]);
   else
     locMsg = {
       short_message: logData.messages[0]
@@ -171,7 +176,7 @@ function sendHTTPGelf(logData, callback) {
 
   if (logData.messages.length > 1) locMsg.full_message = JSON.stringify(Array.prototype.slice.call(logData.messages, 1));
 
-//  module.exports.nativeLog('sendHTTPGelf:'+JSON.stringify(locMsg));
+  //  module.exports.nativeLog('sendHTTPGelf:'+JSON.stringify(locMsg));
 
   var options = {
     hostname: module.exports.options.grayLog.host,
@@ -186,11 +191,11 @@ function sendHTTPGelf(logData, callback) {
   };
 
   var req = http.request(options, (res) => {
-// todo: some debug?
+    // todo: some debug?
   });
 
   req.on('error', (e) => {
-    if (locMsg.short_message != 'Error: '+(e.code || '')+(e.message || e)) console.warn(e);
+    if (locMsg.short_message != 'Error: ' + (e.code || '') + (e.message || e)) console.warn(e);
   });
 
   req.write(JSON.stringify(locMsg));
@@ -208,7 +213,7 @@ var exception = {
 module.exports.handleExceptions = () => {
   process.on('unhandledRejection', exception.handler.bind(exception));
   process.on("uncaughtException", exception.handler.bind(exception));
-// todo: is it need handle? process.on(SIGUSR1)
+  // todo: is it need handle? process.on(SIGUSR1)
 }
 
 

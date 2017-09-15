@@ -55,7 +55,7 @@ console.debug("debug output is disabled, this will do nothing");
 consoleConfig.enable('debug');
 ```
 
-# GrayLog
+## GrayLog
 
 ```js
 consoleConfig.grayLog({
@@ -66,7 +66,7 @@ consoleConfig.grayLog({
 
 logHost is host (source) scope of logging.
 
-# Runtime error handle
+## Runtime error handle
 
 ```js
 consoleConfig.handleExceptions();
