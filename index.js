@@ -187,7 +187,8 @@ function sendHTTPGelf(logData, callback) {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'Content-Length': Buffer.byteLength(JSON.stringify(locMsg))
-    }
+    },
+    timeout: 1500
   };
 
   var req = http.request(options, (res) => {
@@ -195,7 +196,7 @@ function sendHTTPGelf(logData, callback) {
   });
 
   req.on('error', (e) => {
-    if (locMsg.short_message != 'Error: ' + (e.code || '') + (e.message || e)) console.warn(e);
+    if ((e.code != 'ETIMEDOUT') && (locMsg.short_message != 'Error: ' + (e.code || '') + (e.message || e))) console.warn(e);
   });
 
   req.write(JSON.stringify(locMsg));
