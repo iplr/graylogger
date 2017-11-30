@@ -51,7 +51,7 @@ module.exports.printPrefix = (type, t = term) => {
 };
 
 function simpleLogger(logData) {
-  //  module.exports.nativeLog('simpleLogger: '+JSON.stringify(logData.messages[0]));
+  // module.exports.nativeLog('simpleLogger: '+JSON.stringify(logData));
 
   //  module.exports.nativeLog('simpleLogger: msg typeof:'+Object.prototype.toString.call(logData.messages[0]));
 
@@ -120,11 +120,11 @@ module.exports.grayLog = (opt) => {
 
 
 function getMessage(messages) {
-  if (Object.prototype.toString.call(messages[0]) == '[object Object]') {
+  if ((Object.prototype.toString.call(messages[0]) == '[object Object]') && (!messages[0].hasOwnProperty('short_message'))) {
     if (messages[0].hasOwnProperty('short_message')) {
       messages[0] = messages[0].short_message;
     } else {
-      messages[0] = JSON.stringify(messages[0]);
+      messages[0] = JSON.stringify(messages[0], null, 4);
     }
   }
   return messages;
@@ -147,7 +147,7 @@ function sendHTTPGelf(logData, callback) {
 
   var locMsg = {};
 
-  //  module.exports.nativeLog('typeof: '+Object.prototype.toString.call(logData.messages[0]));
+  // module.exports.nativeLog('typeof: '+Object.prototype.toString.call(logData.messages[0]));
 
   if (Object.prototype.toString.call(logData.messages[0]) == '[object Error]') {
     locMsg = {
@@ -163,7 +163,7 @@ function sendHTTPGelf(logData, callback) {
     locMsg.full_message = locMsg.full_message + '\nprocess versions: ' + JSON.stringify(process.versions, null, 4) + '\nmemory usage:' + JSON.stringify(process.memoryUsage(), null, 4);
   } else if (Object.prototype.toString.call(logData.messages[0]) == '[object Object]')
     if (logData.messages[0].hasOwnProperty('short_message')) locMsg = logData.messages[0]
-    else locMsg = JSON.stringify(logData.messages[0]);
+    else locMsg = JSON.stringify(logData.messages[0], null, 4);
   else
     locMsg = {
       short_message: logData.messages[0]
@@ -174,7 +174,7 @@ function sendHTTPGelf(logData, callback) {
   locMsg.level = gelfLevel[logData.messageType.toUpperCase()] || gelfLevel['INFO'];
   locMsg['_local_timestamp'] = moment().toISOString();
 
-  if (logData.messages.length > 1) locMsg.full_message = JSON.stringify(Array.prototype.slice.call(logData.messages, 1));
+  if (logData.messages.length > 1) locMsg.full_message = JSON.stringify(Array.prototype.slice.call(logData.messages, 1), null, 4);
 
   //  module.exports.nativeLog('sendHTTPGelf:'+JSON.stringify(locMsg));
 
