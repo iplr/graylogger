@@ -51,7 +51,7 @@ module.exports.printPrefix = (type, t = term) => {
 };
 
 function simpleLogger(logData) {
-  // module.exports.nativeLog('simpleLogger: '+JSON.stringify(logData));
+//  module.exports.nativeLog('simpleLogger: '+JSON.stringify(logData));
 
   //  module.exports.nativeLog('simpleLogger: msg typeof:'+Object.prototype.toString.call(logData.messages[0]));
 
@@ -120,7 +120,7 @@ module.exports.grayLog = (opt) => {
 
 
 function getMessage(messages) {
-  if ((Object.prototype.toString.call(messages[0]) == '[object Object]') && (!messages[0].hasOwnProperty('short_message'))) {
+  if (Object.prototype.toString.call(messages[0]) == '[object Object]') {
     if (messages[0].hasOwnProperty('short_message')) {
       messages[0] = messages[0].short_message;
     } else {
