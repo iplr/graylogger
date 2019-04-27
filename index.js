@@ -2,6 +2,7 @@ var term = require('terminal-kit').terminal;
 var moment = require('moment');
 var stringz = require('stringz'); // for emoji support ❤️
 var http = require('http'); // todo: https?
+var request = require('requestretry');
 var os = require('os');
 
 var gelfLevel = new Array;
@@ -176,7 +177,7 @@ function sendHTTPGelf(logData, callback) {
 
   if (logData.messages.length > 1) locMsg.full_message = JSON.stringify(Array.prototype.slice.call(logData.messages, 1), null, 4);
 
-  //  module.exports.nativeLog('sendHTTPGelf:'+JSON.stringify(locMsg));
+  module.exports.nativeLog('sendHTTPGelf:', {locMsg: locMsg, logData_messages: logData.messages});
 
   var options = {
     hostname: module.exports.options.grayLog.host,
@@ -188,9 +189,33 @@ function sendHTTPGelf(logData, callback) {
       'Content-Type': 'application/x-www-form-urlencoded',
       'Content-Length': Buffer.byteLength(JSON.stringify(locMsg))
     },
-    timeout: 1500
+    timeout: 1500,
+    fullResponse: true, // (default) To resolve the promise with the full response or just the body
+    maxAttempts: 5,   // (default) try 5 times
+    retryDelay: 2000  // (default) wait for 5s before trying again
   };
 
+  var options = {
+    uri: 'http://' + module.exports.options.grayLog.host + ':',
+    method: 'POST',
+    rejectUnauthorized: false,
+    json: locMsg,
+    timeout: 100,
+    fullResponse: true, // (default) To resolve the promise with the full response or just the body
+    maxAttempts: 5,   // (default) try 5 times
+    retryDelay: 1000  // (default) wait for 5s before trying again
+  };
+
+
+  request(options)
+  .then(function (response) {
+    // response = The full response object or just the body
+  })
+  .catch(function(error) {
+    // error = Any occurred error
+  });
+
+/*
   var req = http.request(options, (res) => {
     // todo: some debug?
   });
@@ -201,13 +226,14 @@ function sendHTTPGelf(logData, callback) {
 
   req.write(JSON.stringify(locMsg));
   req.end();
+*/
 }
 
 var exception = {
   // todo: add info about host, environment to messages
   handler(err) {
     console.error(err);
-    if (module.exports.options.grayLog.quitOnException) process.exit()
+    if (module.exports.options.grayLog.quitOnException) process.exit(1)
   }
 }
 
