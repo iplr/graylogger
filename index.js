@@ -180,9 +180,7 @@ function sendHTTPGelf(logData, callback) {
   module.exports.nativeLog('sendHTTPGelf:', {locMsg: locMsg, logData_messages: logData.messages});
 
   var options = {
-    hostname: module.exports.options.grayLog.host,
-    port: module.exports.options.grayLog.port,
-    path: module.exports.options.grayLog.path,
+    uri: `http://${module.exports.options.grayLog.host}:${module.exports.options.grayLog.port}${module.exports.options.grayLog.path}`,
     method: 'POST',
     rejectUnauthorized: false,
     headers: {
@@ -192,20 +190,9 @@ function sendHTTPGelf(logData, callback) {
     timeout: 1500,
     fullResponse: true, // (default) To resolve the promise with the full response or just the body
     maxAttempts: 5,   // (default) try 5 times
-    retryDelay: 2000  // (default) wait for 5s before trying again
+    retryDelay: 2000,  // (default) wait for 5s before trying again
+    json: locMsg
   };
-
-  var options = {
-    uri: 'http://' + module.exports.options.grayLog.host + ':',
-    method: 'POST',
-    rejectUnauthorized: false,
-    json: locMsg,
-    timeout: 100,
-    fullResponse: true, // (default) To resolve the promise with the full response or just the body
-    maxAttempts: 5,   // (default) try 5 times
-    retryDelay: 1000  // (default) wait for 5s before trying again
-  };
-
 
   request(options)
   .then(function (response) {
