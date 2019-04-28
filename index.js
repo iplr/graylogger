@@ -2,7 +2,7 @@ var term = require('terminal-kit').terminal;
 var moment = require('moment');
 var stringz = require('stringz'); // for emoji support ❤️
 var http = require('http'); // todo: https?
-var request = require('request');
+var request = require('request').debug = false;
 var os = require('os');
 
 var gelfLevel = new Array;
@@ -192,10 +192,10 @@ function sendHTTPGelf(logData, callback) {
     function(error, response, body) {
       if (error) {
         // return console.error('upload failed:', error);
-        // module.exports.nativeLog('sendHTTPGelf: error: ', error);
+        module.exports.nativeLog('sendHTTPGelf: error: ', error);
       }
       // console.log('Upload successful!  Server responded with:', body);
-      // module.exports.nativeLog('sendHTTPGelf: body: ', response.statusCode);
+      module.exports.nativeLog('sendHTTPGelf: body: ', response.statusCode);
     });
 }
 
