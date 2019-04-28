@@ -1,6 +1,6 @@
 {
   "name": "graylogger",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Overrides console functions in Node.js and logging to GrayLog server",
   "main": "index.js",
   "scripts": {
@@ -27,7 +27,6 @@
     "moment": "^2.24.0",
     "stringz": "^1.0.0",
     "terminal-kit": "^1.28.0",
-    "http": "*",
-    "requestretry": "^4.0.0"
+    "request": "^2.88.0"
   }
 }

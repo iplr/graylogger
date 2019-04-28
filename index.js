@@ -2,7 +2,7 @@ var term = require('terminal-kit').terminal;
 var moment = require('moment');
 var stringz = require('stringz'); // for emoji support ❤️
 var http = require('http'); // todo: https?
-var request = require('requestretry');
+var request = require('request');
 var os = require('os');
 
 var gelfLevel = new Array;
@@ -52,7 +52,7 @@ module.exports.printPrefix = (type, t = term) => {
 };
 
 function simpleLogger(logData) {
-//  module.exports.nativeLog('simpleLogger: '+JSON.stringify(logData));
+  //  module.exports.nativeLog('simpleLogger: '+JSON.stringify(logData));
 
   //  module.exports.nativeLog('simpleLogger: msg typeof:'+Object.prototype.toString.call(logData.messages[0]));
 
@@ -164,7 +164,7 @@ function sendHTTPGelf(logData, callback) {
     locMsg.full_message = locMsg.full_message + '\nprocess versions: ' + JSON.stringify(process.versions, null, 4) + '\nmemory usage:' + JSON.stringify(process.memoryUsage(), null, 4);
   } else if (Object.prototype.toString.call(logData.messages[0]) == '[object Object]')
     if (logData.messages[0].hasOwnProperty('short_message')) locMsg = logData.messages[0]
-    else locMsg = JSON.stringify(logData.messages[0], null, 4);
+  else locMsg = JSON.stringify(logData.messages[0], null, 4);
   else
     locMsg = {
       short_message: logData.messages[0]
@@ -182,38 +182,21 @@ function sendHTTPGelf(logData, callback) {
   var options = {
     uri: `http://${module.exports.options.grayLog.host}:${module.exports.options.grayLog.port}${module.exports.options.grayLog.path}`,
     method: 'POST',
-    rejectUnauthorized: false,
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Content-Length': Buffer.byteLength(JSON.stringify(locMsg))
-    },
     timeout: 1500,
-    fullResponse: true, // (default) To resolve the promise with the full response or just the body
-    maxAttempts: 5,   // (default) try 5 times
-    retryDelay: 2000,  // (default) wait for 5s before trying again
-    json: locMsg
+    json: true,
+    xml: false,
+    body: locMsg
   };
 
-  request(options)
-  .then(function (response) {
-    // response = The full response object or just the body
-  })
-  .catch(function(error) {
-    // error = Any occurred error
-  });
-
-/*
-  var req = http.request(options, (res) => {
-    // todo: some debug?
-  });
-
-  req.on('error', (e) => {
-    if ((e.code != 'ETIMEDOUT') && (locMsg.short_message != 'Error: ' + (e.code || '') + (e.message || e))) console.warn(e);
-  });
-
-  req.write(JSON.stringify(locMsg));
-  req.end();
-*/
+  request(options,
+    function(error, response, body) {
+      if (error) {
+        // return console.error('upload failed:', error);
+        // module.exports.nativeLog('sendHTTPGelf: error: ', error);
+      }
+      // console.log('Upload successful!  Server responded with:', body);
+      // module.exports.nativeLog('sendHTTPGelf: body: ', response.statusCode);
+    });
 }
 
 var exception = {
