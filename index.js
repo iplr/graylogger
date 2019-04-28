@@ -2,7 +2,8 @@ var term = require('terminal-kit').terminal;
 var moment = require('moment');
 var stringz = require('stringz'); // for emoji support ❤️
 var http = require('http'); // todo: https?
-var request = require('request').debug = false;
+var request = require('request');
+request.debug = false;
 var os = require('os');
 
 var gelfLevel = new Array;
