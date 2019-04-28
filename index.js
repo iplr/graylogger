@@ -177,7 +177,7 @@ function sendHTTPGelf(logData, callback) {
 
   if (logData.messages.length > 1) locMsg.full_message = JSON.stringify(Array.prototype.slice.call(logData.messages, 1), null, 4);
 
-  module.exports.nativeLog('sendHTTPGelf:', {locMsg: locMsg, logData_messages: logData.messages});
+  //module.exports.nativeLog('sendHTTPGelf:', {locMsg: locMsg, logData_messages: logData.messages});
 
   var options = {
     uri: `http://${module.exports.options.grayLog.host}:${module.exports.options.grayLog.port}${module.exports.options.grayLog.path}`,
