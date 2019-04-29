@@ -2,7 +2,6 @@ var term = require('terminal-kit').terminal;
 var moment = require('moment');
 var stringz = require('stringz'); // for emoji support ❤️
 var request = require('request');
-request.debug = false;
 var os = require('os');
 
 var gelfLevel = new Array;
@@ -186,6 +185,8 @@ function sendHTTPGelf(logData, callback) {
     json: true,
     body: locMsg
   };
+
+  request.debug = false;
 
   request(options,
     function(error, response, body) {
