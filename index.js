@@ -183,6 +183,7 @@ function sendHTTPGelf(logData, callback) {
     uri: `http://${module.exports.options.grayLog.host}:${module.exports.options.grayLog.port}${module.exports.options.grayLog.path}`,
     method: 'POST',
     timeout: 1500,
+    json: true,
     body: locMsg
   };
 
