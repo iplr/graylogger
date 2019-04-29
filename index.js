@@ -183,8 +183,6 @@ function sendHTTPGelf(logData, callback) {
     uri: `http://${module.exports.options.grayLog.host}:${module.exports.options.grayLog.port}${module.exports.options.grayLog.path}`,
     method: 'POST',
     timeout: 1500,
-    json: true,
-    xml: false,
     body: locMsg
   };
 
@@ -192,10 +190,10 @@ function sendHTTPGelf(logData, callback) {
     function(error, response, body) {
       if (error) {
         // return console.error('upload failed:', error);
-        module.exports.nativeLog('sendHTTPGelf: error: ', error);
+        //module.exports.nativeLog('sendHTTPGelf: error: ', error);
       }
       // console.log('Upload successful!  Server responded with:', body);
-      module.exports.nativeLog('sendHTTPGelf: body: ', response.statusCode);
+      //module.exports.nativeLog('sendHTTPGelf: body: ', response.statusCode);
     });
 }
 
