@@ -1,218 +1,304 @@
-var term = require('terminal-kit').terminal;
-var moment = require('moment');
-var stringz = require('stringz'); // for emoji support ❤️
-var request = require('request');
-var os = require('os');
+'use strict';
 
-var gelfLevel = new Array;
-gelfLevel['LOG'] = 1;
-gelfLevel['ERROR'] = 3;
-gelfLevel['WARN'] = 4;
-gelfLevel['INFO'] = 6;
-gelfLevel['DEBUG'] = 7;
-gelfLevel['SUCCESS'] = 8;
+const term = require('terminal-kit').terminal;
+const moment = require('moment');
+const stringz = require('stringz'); // for emoji support ❤️
+const request = require('request');
+var PrettyError;
+var pe = {};
+
+const gelfLevel = {
+  log: 1,
+  error: 3,
+  warn: 4,
+  info: 6,
+  debug: 7,
+  success: 8,
+};
+
+/*
+.init({enable: ['log', 'debug', 'info', 'warn', 'error'], PrettyError: true})
+*/
+module.exports.init = opt => {
+  (opt.enable || ['debug', 'log', 'info', 'warn', 'error']).forEach(type => {
+    module.exports.makeSimpleLogger(type);
+  });
+
+  if (opt.PrettyError) {
+    PrettyError = require('pretty-error');
+    pe = new PrettyError();
+    pe.skipNodeFiles();
+    pe.skipPackage('loader.js', 'chai', 'when');
+    pe.skipPath(
+      'internal/main/run_main_module.js',
+      'internal/modules/cjs/loader.js'
+    );
+  }
+};
+
+// graylog init
+module.exports.grayLog = opt => {
+  module.exports.options.grayLog.logHost = opt.logHost || null;
+  module.exports.options.grayLog.host = opt.host || null;
+  module.exports.options.grayLog.port = opt.port || 12201;
+  module.exports.options.grayLog.path = opt.path || '/gelf';
+  module.exports.options.grayLog.configureScope = opt.configureScope || null;
+
+  (opt.enable || ['debug', 'log', 'warn', 'error']).forEach(type => {
+    module.exports.enableGraylog(type);
+  });
+};
 
 // keep the native pipe to stdout & stderr
 module.exports.nativeLog = global.console.log;
 module.exports.nativeError = global.console.error;
 
 // enables or disables certain types of logging
-var loggerTypes = {}
+var loggerTypes = {};
 module.exports.enable = type => {
-  module.exports.options.styles[type] = module.exports.options.styles[type] || [term, module.exports.nativeLog];
+  module.exports.options.styles[type] = module.exports.options.styles[type] || [
+    term,
+    module.exports.nativeLog,
+  ];
   loggerTypes[type] = true;
 };
-module.exports.disable = type => loggerTypes[type] = false;
+module.exports.disable = type => (loggerTypes[type] = false);
 module.exports.isEnabled = type => loggerTypes[type];
 
+// enables or disables certain types of logging
+var loggerTypesGraylog = {};
+module.exports.enableGraylog = type => {
+  loggerTypesGraylog[type] = true;
+};
+module.exports.disableGraylog = type => (loggerTypesGraylog[type] = false);
+module.exports.isEnabledGraylog = type => loggerTypesGraylog[type];
+
 module.exports.options = {
-  typePadding: '         ', // dictates the width of the type prefix
-  styles: { // contains term styles for the various prefixes
+  typePadding: '     ', // dictates the width of the type prefix
+  styles: {
+    // contains term styles for the various prefixes
     error: [term.error.bgRed.white, module.exports.nativeError],
     warn: [term.error.bgYellow.white, module.exports.nativeError],
     info: [term, module.exports.nativeLog],
     debug: [term.green, module.exports.nativeLog],
-    success: [term.bgGreen.white, module.exports.nativeLog]
+    success: [term.bgGreen.white, module.exports.nativeLog],
   },
   // a function that takes a date and returns a string
   // used to print the date in the prefix
-  dateFormatter: date => moment(date).format("D/M/YY HH:mm:ss.SSS"),
+  dateFormatter: date => moment(date).format('HH:mm:ss.SSS'),
   quitOnException: true,
   grayLog: {
-    enabled: false
-  }
-}
+    enabled: false,
+  },
+};
 
-var getLogTypePrefix = type => ` [${type}] ${module.exports.options.typePadding.substring(stringz.length(type) + 4)}`;
-var getPrefix = type => getLogTypePrefix(type) + module.exports.options.dateFormatter(new Date()) + " ";
+const getLogTypePrefix = type =>
+  ` [${type}] ${module.exports.options.typePadding.substring(
+    stringz.length(type) + 4
+  )}`;
+const getPrefix = type =>
+  getLogTypePrefix(type) +
+  module.exports.options.dateFormatter(new Date()) +
+  ' ';
 module.exports.printPrefix = (type, t = term) => {
   t(getPrefix(type));
-  t.styleReset("| ")
+  t.styleReset('| ');
 };
 
 function simpleLogger(logData) {
-  //  module.exports.nativeLog('simpleLogger: '+JSON.stringify(logData));
+  let TYPE =
+    logData.messageType == 'success'
+      ? 'O'
+      : logData.messageType.substr(0, 1).toUpperCase();
 
-  //  module.exports.nativeLog('simpleLogger: msg typeof:'+Object.prototype.toString.call(logData.messages[0]));
+  let locMsg = [];
 
-  var TYPE = logData.messageType == "success" ? "OK" : logData.messageType.toUpperCase();
-  if (loggerTypes[logData.messageType]) {
-    module.exports.printPrefix(TYPE, module.exports.options.styles[logData.messageType][0]);
-    module.exports.options.styles[logData.messageType][1].apply(this, getMessage(logData.messages));
-    // todo: do I need to use callback here?
-    sendHTTPGelf(logData);
+  if (
+    Object.prototype.toString.call(logData.messages[0]) === '[object Error]' &&
+    logData.messageType === 'error'
+  ) {
+    if (pe) {
+      locMsg.push(pe.render(logData.messages[0]));
+    } else {
+      locMsg.push(
+        `Error: ${logData.messages[0].code || ''}  ${logData.messages[0]
+          .message || logData.messages[0]}`
+      );
+
+      if (logData.messages[0].hasOwnProperty('stack')) {
+        locMsg.push(logData.messages[0].stack);
+      }
+
+      locMsg.push(
+        `process versions: ${JSON.stringify(process.versions, null, 4)}`
+      );
+      locMsg.push(
+        `memory usage: ${JSON.stringify(process.memoryUsage(), null, 4)}`
+      );
+    }
+  } else if (
+    Object.prototype.toString.call(logData.messages[0]) == '[object Object]'
+  ) {
+    locMsg.push(JSON.stringify(logData.messages[0]));
+  } else {
+    locMsg.push(logData.messages[0]);
   }
+
+  for (let i = 1; i < logData.messages.length; i++) {
+    locMsg.push('\n');
+    if (
+      Object.prototype.toString.call(logData.messages[i]) == '[object Object]'
+    ) {
+      locMsg.push(JSON.stringify(logData.messages[i], null, 4));
+    } else {
+      locMsg.push(logData.messages[i]);
+    }
+  }
+
+  if (loggerTypes[logData.messageType]) {
+    module.exports.printPrefix(
+      TYPE,
+      module.exports.options.styles[logData.messageType][0]
+    );
+    module.exports.options.styles[logData.messageType][1].apply(this, locMsg);
+  }
+
+  sendHTTPGelf(logData);
 }
 
 module.exports.makeSimpleLogger = type => {
   module.exports.enable(type);
   global.console[type] = function() {
     simpleLogger({
-      'messageType': type,
-      'messages': arguments,
-      '_messagesObj_type': Object.prototype.toString.call(arguments)
+      messageType: type,
+      messages: arguments,
+      _messagesObj_type: Object.prototype.toString.call(arguments),
     });
-  }
-}
+  };
+};
 
 module.exports.makeCustomLogger = (type, myfunction) => {
   module.exports.enable(type);
   global.console[type] = function() {
     if (loggerTypes[type]) {
       myfunction.apply(this, arguments);
+    }
+    if (loggerTypesGraylog[type]) {
       sendHTTPGelf(arguments);
     }
   };
-}
+};
 
-module.exports.makeSimpleLogger("debug");
-module.exports.makeSimpleLogger("info");
-global.console.log = global.console.info;
-module.exports.makeSimpleLogger("warn");
-module.exports.makeSimpleLogger("success");
-module.exports.makeSimpleLogger("error");
-
-/*
-todo: disabled to improve
-
-module.exports.makeCustomLogger("error", function() {
-  var isTrace = typeof arguments[0] == "string" && arguments[0].substring(0, 5) == "Trace";
-  var type = isTrace ? "TRACE" : "ERROR";
-  module.exports.printPrefix(type, module.exports.options.styles.error[0]);
-  if (isTrace) {
-    arguments[0] = arguments[0].substring(7);
-  }
-  module.exports.options.styles.error[1].apply(this, arguments);
-})
-*/
-
-module.exports.grayLog = (opt) => {
-  // todo: add to source default os.hostname?
-  module.exports.options.grayLog.logHost = opt.hasOwnProperty('logHost') ? opt.logHost : '';
-  module.exports.options.grayLog.host = opt.hasOwnProperty('host') ? opt.host : '';
-  module.exports.options.grayLog.port = opt.hasOwnProperty('port') ? opt.port : 12201;
-  module.exports.options.grayLog.path = opt.hasOwnProperty('path') ? opt.path : '/gelf';
-
-  // todo: check connections to graylog and callback w/ status
-
-  module.exports.options.grayLog.enabled = true;
-}
-
-
-function getMessage(messages) {
-  if (Object.prototype.toString.call(messages[0]) == '[object Object]') {
-    if (messages[0].hasOwnProperty('short_message')) {
-      messages[0] = messages[0].short_message;
-    } else {
-      messages[0] = JSON.stringify(messages[0], null, 4);
-    }
-  }
-  return messages;
-}
-
-
-function sendHTTPGelf(logData, callback) {
-  if (!module.exports.options.grayLog.enabled) {
-    //    callback(throw new Error('GrayLog disabled'));
+function sendHTTPGelf(logData) {
+  if (
+    !module.exports.options.grayLog.host ||
+    !loggerTypesGraylog[logData.messageType]
+  ) {
     return;
   }
 
-  // use try, чтобы исключить зацикливание ошибок, логирование которых появится при выполнении
-  // todo: надо брать дополнительные поля из logData, которые начинаются с "_" и включать в gelf
-  // todo: queue if undelivered message
-  // todo: add local time zone
-  // todo: use callback?''
+  let locMsg = {
+    version: '1.1',
+    host: module.exports.options.grayLog.logHost,
+    level: gelfLevel[logData.messageType] || gelfLevel['info'],
+    _local_timestamp: moment().format('DD.MM.YYYY hh:mm:ss.SSS'),
+    full_message: '',
+  };
 
-  //  module.exports.nativeLog('sendHTTPGelf:'+JSON.stringify(logData));
+  if (
+    Object.prototype.toString.call(logData.messages[0]) === '[object Error]' &&
+    logData.messageType === 'error'
+  ) {
+    if (pe) {
+      pe.withoutColors();
+      let peRender = pe.render(logData.messages[0]).split('\n');
+      locMsg.short_message = peRender[0];
+      peRender.shift();
+      locMsg.full_message = peRender.join('\n');
+    } else {
+      locMsg.short_message = `Error: ${logData.messages[0].code || ''} ${logData
+        .messages[0].message || logData.messages[0]}`;
+      locMsg.full_message = '';
 
-  var locMsg = {};
+      if (logData.messages[0].hasOwnProperty('stack')) {
+        locMsg.full_message = logData.messages[0].stack;
+      }
 
-  // module.exports.nativeLog('typeof: '+Object.prototype.toString.call(logData.messages[0]));
-
-  if (Object.prototype.toString.call(logData.messages[0]) == '[object Error]') {
-    locMsg = {
-      short_message: 'Error: ' + (logData.messages[0].code || '') + (logData.messages[0].message || logData.messages[0]),
-      '_error': 1,
-      full_message: ''
+      locMsg.full_message += `\nprocess versions: ${JSON.stringify(
+        process.versions,
+        null,
+        4
+      )}\nmemory usage: ${JSON.stringify(process.memoryUsage(), null, 4)}`;
     }
-    if (logData.messages[0].hasOwnProperty('stack')) {
-      locMsg.full_message = logData.messages[0].stack;
-      locMsg['_error'] = 2;
+  } else if (
+    Object.prototype.toString.call(logData.messages[0]) == '[object Object]'
+  ) {
+    locMsg.short_message = JSON.stringify(logData.messages[0]);
+  } else {
+    locMsg.short_message = logData.messages[0];
+  }
+
+  for (let i = 1; i < logData.messages.length; i++) {
+    if (
+      Object.prototype.toString.call(logData.messages[i]) === '[object Object]'
+    ) {
+      Object.keys(logData.messages[i]).forEach(key => {
+        if (
+          Object.prototype.toString.call(logData.messages[i][key]) ==
+          '[object Object]'
+        ) {
+          locMsg[`_${key}`] = JSON.stringify(logData.messages[i][key], null, 4);
+        } else {
+          locMsg[`_${key}`] = logData.messages[i][key];
+        }
+      });
+    } else {
+      locMsg.full_message += `${!locMsg.full_message ? '' : '\n'}${
+        logData.messages[i]
+      }`;
     }
+  }
 
-    locMsg.full_message = locMsg.full_message + '\nprocess versions: ' + JSON.stringify(process.versions, null, 4) + '\nmemory usage:' + JSON.stringify(process.memoryUsage(), null, 4);
-  } else if (Object.prototype.toString.call(logData.messages[0]) == '[object Object]')
-    if (logData.messages[0].hasOwnProperty('short_message')) locMsg = logData.messages[0]
-  else locMsg = JSON.stringify(logData.messages[0], null, 4);
-  else
-    locMsg = {
-      short_message: logData.messages[0]
-    }
+  if (module.exports.options.grayLog.configureScope) {
+    let scope = module.exports.options.grayLog.configureScope();
+    Object.assign(
+      locMsg,
+      Object.fromEntries(
+        Object.entries(scope).map(([key, value]) => [`_${key}`, value])
+      )
+    );
+  }
 
-  locMsg.version = '1.1';
-  locMsg.host = module.exports.options.grayLog.logHost;
-  locMsg.level = gelfLevel[logData.messageType.toUpperCase()] || gelfLevel['INFO'];
-  locMsg['_local_timestamp'] = moment().toISOString();
-
-  if (logData.messages.length > 1) locMsg.full_message = JSON.stringify(Array.prototype.slice.call(logData.messages, 1), null, 4);
-
-  //module.exports.nativeLog('sendHTTPGelf:', {locMsg: locMsg, logData_messages: logData.messages});
-
-  var options = {
+  const options = {
     uri: `http://${module.exports.options.grayLog.host}:${module.exports.options.grayLog.port}${module.exports.options.grayLog.path}`,
     method: 'POST',
     timeout: 1500,
     json: true,
-    body: locMsg
+    body: locMsg,
   };
 
   request.debug = false;
 
-  request(options,
-    function(error, response, body) {
-      if (error) {
-        // return console.error('upload failed:', error);
-        //module.exports.nativeLog('sendHTTPGelf: error: ', error);
-      }
-      // console.log('Upload successful!  Server responded with:', body);
-      //module.exports.nativeLog('sendHTTPGelf: body: ', response.statusCode);
-    });
+  // eslint-disable-next-line no-unused-vars
+  request(options, function(error, response, body) {
+    if (error) {
+      //return console.error('upload failed:', error);
+      //module.exports.nativeLog('sendHTTPGelf: error: ', error);
+    }
+    //console.log('Upload successful!  Server responded with:', body);
+    //module.exports.nativeLog('sendHTTPGelf() response: ', {statusCode: response.statusCode,body,});
+  });
 }
 
-var exception = {
+const exception = {
   // todo: add info about host, environment to messages
   handler(err) {
     console.error(err);
-    if (module.exports.options.grayLog.quitOnException) process.exit(1)
-  }
-}
+    if (module.exports.options.grayLog.quitOnException) process.exit(1);
+  },
+};
 
 module.exports.handleExceptions = () => {
   process.on('unhandledRejection', exception.handler.bind(exception));
-  process.on("uncaughtException", exception.handler.bind(exception));
-  // todo: is it need handle? process.on(SIGUSR1)
-}
-
-
-// todo: add git support like this https://github.com/observing/exception
-// todo:
+  process.on('uncaughtException', exception.handler.bind(exception));
+};
