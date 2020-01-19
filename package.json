@@ -23,6 +23,7 @@
   "dependencies": {
     "moment": "^2.24.0",
     "pretty-error": "^2.1.1",
+    "pretty-format": "^24.9.0",
     "request": "^2.88.0",
     "stringz": "^2.0.0",
     "terminal-kit": "^1.32.3"

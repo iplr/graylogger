@@ -4,6 +4,7 @@ const term = require('terminal-kit').terminal;
 const moment = require('moment');
 const stringz = require('stringz'); // for emoji support ❤️
 const request = require('request');
+const prettyFormat = require('pretty-format'); // CommonJS
 var PrettyError;
 var pe = {};
 
@@ -130,10 +131,10 @@ function simpleLogger(logData) {
       }
 
       locMsg.push(
-        `process versions: ${JSON.stringify(process.versions, null, 4)}`
+        `process versions: ${prettyFormat(process.versions, { indent: 5 })}`
       );
       locMsg.push(
-        `memory usage: ${JSON.stringify(process.memoryUsage(), null, 4)}`
+        `memory usage: ${prettyFormat(process.memoryUsage(), { indent: 5 })}`
       );
     }
   } else if (
@@ -149,7 +150,7 @@ function simpleLogger(logData) {
     if (
       Object.prototype.toString.call(logData.messages[i]) == '[object Object]'
     ) {
-      locMsg.push(JSON.stringify(logData.messages[i], null, 4));
+      locMsg.push(prettyFormat(logData.messages[i], { indent: 5 }));
     } else {
       locMsg.push(logData.messages[i]);
     }
@@ -224,11 +225,10 @@ function sendHTTPGelf(logData) {
         locMsg.full_message = logData.messages[0].stack;
       }
 
-      locMsg.full_message += `\nprocess versions: ${JSON.stringify(
+      locMsg.full_message += `\nprocess versions: ${prettyFormat(
         process.versions,
-        null,
-        4
-      )}\nmemory usage: ${JSON.stringify(process.memoryUsage(), null, 4)}`;
+        { indent: 5 }
+      )}\nmemory usage: ${prettyFormat(process.memoryUsage(), { indent: 5 })}`;
     }
   } else if (
     Object.prototype.toString.call(logData.messages[0]) == '[object Object]'
@@ -247,7 +247,9 @@ function sendHTTPGelf(logData) {
           Object.prototype.toString.call(logData.messages[i][key]) ==
           '[object Object]'
         ) {
-          locMsg[`_${key}`] = JSON.stringify(logData.messages[i][key], null, 4);
+          locMsg[`_${key}`] = prettyFormat(logData.messages[i][key], {
+            indent: 5,
+          });
         } else {
           locMsg[`_${key}`] = logData.messages[i][key];
         }
