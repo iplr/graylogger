@@ -1,6 +1,6 @@
 {
   "name": "graylogger",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Overrides console functions in Node.js and logging to GrayLog server",
   "main": "index.js",
   "repository": {
@@ -21,9 +21,9 @@
   },
   "homepage": "https://github.com/iplr/graylogger#readme",
   "dependencies": {
+    "circular-json": "^0.5.9",
     "moment": "^2.24.0",
     "pretty-error": "^2.1.1",
-    "pretty-format": "^24.9.0",
     "request": "^2.88.0",
     "stringz": "^2.0.0",
     "terminal-kit": "^1.32.3"

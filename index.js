@@ -4,7 +4,7 @@ const term = require('terminal-kit').terminal;
 const moment = require('moment');
 const stringz = require('stringz'); // for emoji support ❤️
 const request = require('request');
-const prettyFormat = require('pretty-format'); // CommonJS
+const stringify = require('circular-json').stringify;
 var PrettyError;
 var pe = {};
 
@@ -130,17 +130,13 @@ function simpleLogger(logData) {
         locMsg.push(logData.messages[0].stack);
       }
 
-      locMsg.push(
-        `process versions: ${prettyFormat(process.versions, { indent: 5 })}`
-      );
-      locMsg.push(
-        `memory usage: ${prettyFormat(process.memoryUsage(), { indent: 5 })}`
-      );
+      locMsg.push(`process versions: ${stringify(process.versions, null, 5)}`);
+      locMsg.push(`memory usage: ${stringify(process.memoryUsage(), null, 5)}`);
     }
   } else if (
     Object.prototype.toString.call(logData.messages[0]) == '[object Object]'
   ) {
-    locMsg.push(JSON.stringify(logData.messages[0]));
+    locMsg.push(JSON.stringify(logData.messages[0]), null, 5);
   } else {
     locMsg.push(logData.messages[0]);
   }
@@ -150,7 +146,7 @@ function simpleLogger(logData) {
     if (
       Object.prototype.toString.call(logData.messages[i]) == '[object Object]'
     ) {
-      locMsg.push(prettyFormat(logData.messages[i], { indent: 5 }));
+      locMsg.push(stringify(logData.messages[i], null, 5));
     } else {
       locMsg.push(logData.messages[i]);
     }
@@ -202,7 +198,7 @@ function sendHTTPGelf(logData) {
     version: '1.1',
     host: module.exports.options.grayLog.logHost,
     level: gelfLevel[logData.messageType] || gelfLevel['info'],
-    _local_timestamp: moment().format('DD.MM.YYYY hh:mm:ss.SSS'),
+    _local_timestamp: moment().toISOString(true),
     full_message: '',
   };
 
@@ -225,10 +221,11 @@ function sendHTTPGelf(logData) {
         locMsg.full_message = logData.messages[0].stack;
       }
 
-      locMsg.full_message += `\nprocess versions: ${prettyFormat(
+      locMsg.full_message += `\nprocess versions: ${stringify(
         process.versions,
-        { indent: 5 }
-      )}\nmemory usage: ${prettyFormat(process.memoryUsage(), { indent: 5 })}`;
+        null,
+        5
+      )}\nmemory usage: ${stringify(process.memoryUsage(), null, 5)}`;
     }
   } else if (
     Object.prototype.toString.call(logData.messages[0]) == '[object Object]'
@@ -247,9 +244,7 @@ function sendHTTPGelf(logData) {
           Object.prototype.toString.call(logData.messages[i][key]) ==
           '[object Object]'
         ) {
-          locMsg[`_${key}`] = prettyFormat(logData.messages[i][key], {
-            indent: 5,
-          });
+          locMsg[`_${key}`] = stringify(logData.messages[i][key], null, 5);
         } else {
           locMsg[`_${key}`] = logData.messages[i][key];
         }
@@ -284,11 +279,15 @@ function sendHTTPGelf(logData) {
   // eslint-disable-next-line no-unused-vars
   request(options, function(error, response, body) {
     if (error) {
-      //return console.error('upload failed:', error);
+      //return console.error(error);
       //module.exports.nativeLog('sendHTTPGelf: error: ', error);
     }
     //console.log('Upload successful!  Server responded with:', body);
-    //module.exports.nativeLog('sendHTTPGelf() response: ', {statusCode: response.statusCode,body,});
+    //module.exports.nativeLog('sendHTTPGelf() response: ', {
+    //options,
+    //statusCode: response.statusCode,
+    //body,
+    //});
   });
 }
 
