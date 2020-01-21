@@ -32,7 +32,8 @@ module.exports.init = opt => {
     pe.skipPackage('loader.js', 'chai', 'when');
     pe.skipPath(
       'internal/main/run_main_module.js',
-      'internal/modules/cjs/loader.js'
+      'internal/modules/cjs/loader.js',
+      'internal/modules/cjs/helpers.js'
     );
   }
 };
@@ -106,50 +107,49 @@ module.exports.printPrefix = (type, t = term) => {
   t.styleReset('| ');
 };
 
+function prepareLog(message) {
+  let result = [];
+
+  if (Object.prototype.toString.call(message) === '[object Error]') {
+    if (pe) {
+      result.push(pe.render(message));
+    } else {
+      result.push(
+        `Error: ${message.code || ''}  ${message.message || message}`
+      );
+
+      if (message.hasOwnProperty('stack')) {
+        result.push(`\nstack: ${message.stack}`);
+      }
+
+      result.push(
+        `\nprocess versions: ${stringify(process.versions, null, 5)}`
+      );
+      result.push(
+        `\nmemory usage: ${stringify(process.memoryUsage(), null, 5)}`
+      );
+    }
+  } else if (Object.prototype.toString.call(message) === '[object Array]') {
+    result.push(stringify(message, null, 5));
+  } else if (Object.prototype.toString.call(message) === '[object Object]') {
+    result.push(stringify(message, null, 5));
+  } else {
+    result.push(message);
+  }
+
+  return result; //result.length <= 1 ? result.join() :
+}
+
 function simpleLogger(logData) {
   let TYPE =
     logData.messageType == 'success'
       ? 'O'
       : logData.messageType.substr(0, 1).toUpperCase();
 
-  let locMsg = [];
-
-  if (
-    Object.prototype.toString.call(logData.messages[0]) === '[object Error]' &&
-    logData.messageType === 'error'
-  ) {
-    if (pe) {
-      locMsg.push(pe.render(logData.messages[0]));
-    } else {
-      locMsg.push(
-        `Error: ${logData.messages[0].code || ''}  ${logData.messages[0]
-          .message || logData.messages[0]}`
-      );
-
-      if (logData.messages[0].hasOwnProperty('stack')) {
-        locMsg.push(logData.messages[0].stack);
-      }
-
-      locMsg.push(`process versions: ${stringify(process.versions, null, 5)}`);
-      locMsg.push(`memory usage: ${stringify(process.memoryUsage(), null, 5)}`);
-    }
-  } else if (
-    Object.prototype.toString.call(logData.messages[0]) == '[object Object]'
-  ) {
-    locMsg.push(JSON.stringify(logData.messages[0]), null, 5);
-  } else {
-    locMsg.push(logData.messages[0]);
-  }
+  let locMsg = prepareLog(logData.messages[0]);
 
   for (let i = 1; i < logData.messages.length; i++) {
-    locMsg.push('\n');
-    if (
-      Object.prototype.toString.call(logData.messages[i]) == '[object Object]'
-    ) {
-      locMsg.push(stringify(logData.messages[i], null, 5));
-    } else {
-      locMsg.push(logData.messages[i]);
-    }
+    locMsg.push(...['\n'], ...prepareLog(logData.messages[i]));
   }
 
   if (loggerTypes[logData.messageType]) {
@@ -203,8 +203,7 @@ function sendHTTPGelf(logData) {
   };
 
   if (
-    Object.prototype.toString.call(logData.messages[0]) === '[object Error]' &&
-    logData.messageType === 'error'
+    Object.prototype.toString.call(logData.messages[0]) === '[object Error]'
   ) {
     if (pe) {
       pe.withoutColors();
@@ -227,12 +226,8 @@ function sendHTTPGelf(logData) {
         5
       )}\nmemory usage: ${stringify(process.memoryUsage(), null, 5)}`;
     }
-  } else if (
-    Object.prototype.toString.call(logData.messages[0]) == '[object Object]'
-  ) {
-    locMsg.short_message = JSON.stringify(logData.messages[0]);
   } else {
-    locMsg.short_message = logData.messages[0];
+    locMsg.short_message = prepareLog(logData.messages[0]).join();
   }
 
   for (let i = 1; i < logData.messages.length; i++) {
@@ -240,19 +235,12 @@ function sendHTTPGelf(logData) {
       Object.prototype.toString.call(logData.messages[i]) === '[object Object]'
     ) {
       Object.keys(logData.messages[i]).forEach(key => {
-        if (
-          Object.prototype.toString.call(logData.messages[i][key]) ==
-          '[object Object]'
-        ) {
-          locMsg[`_${key}`] = stringify(logData.messages[i][key], null, 5);
-        } else {
-          locMsg[`_${key}`] = logData.messages[i][key];
-        }
+        locMsg[`_${key}`] = prepareLog(logData.messages[i][key]).join('\n');
       });
     } else {
-      locMsg.full_message += `${!locMsg.full_message ? '' : '\n'}${
+      locMsg.full_message += `${!locMsg.full_message ? '' : '\n'}${prepareLog(
         logData.messages[i]
-      }`;
+      ).join('\n')}`;
     }
   }
 
@@ -273,6 +261,8 @@ function sendHTTPGelf(logData) {
     json: true,
     body: locMsg,
   };
+
+  //module.exports.nativeLog('>>> locMsg:', locMsg)
 
   request.debug = false;
 
