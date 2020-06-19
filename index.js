@@ -44,7 +44,7 @@ module.exports.grayLog = opt => {
   module.exports.options.grayLog.host = opt.host || null;
   module.exports.options.grayLog.port = opt.port || 12201;
   module.exports.options.grayLog.path = opt.path || '/gelf';
-  module.exports.options.grayLog.configureScope = opt.configureScope || null;
+  module.exports.options.grayLog.scope = opt.configureScope || null;
 
   (opt.enable || ['debug', 'log', 'warn', 'error']).forEach(type => {
     module.exports.enableGraylog(type);
@@ -244,14 +244,8 @@ function sendHTTPGelf(logData) {
     }
   }
 
-  if (module.exports.options.grayLog.configureScope) {
-    let scope = module.exports.options.grayLog.configureScope();
-    Object.assign(
-      locMsg,
-      Object.fromEntries(
-        Object.entries(scope).map(([key, value]) => [`_${key}`, value])
-      )
-    );
+  if (module.exports.options.grayLog.scope) {
+    Object.assign(locMsg, module.exports.options.grayLog.scope());
   }
 
   const options = {

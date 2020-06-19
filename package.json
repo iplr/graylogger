@@ -1,6 +1,6 @@
 {
   "name": "graylogger",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Overrides console functions in Node.js and logging to GrayLog server",
   "main": "index.js",
   "repository": {
