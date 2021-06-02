@@ -40,11 +40,14 @@ module.exports.init = opt => {
 
 // graylog init
 module.exports.grayLog = opt => {
-  module.exports.options.grayLog.logHost = opt.logHost || null;
-  module.exports.options.grayLog.host = opt.host || null;
-  module.exports.options.grayLog.port = opt.port || 12201;
-  module.exports.options.grayLog.path = opt.path || '/gelf';
-  module.exports.options.grayLog.scope = opt.configureScope || null;
+  module.exports.options.grayLog = {
+    logHost: opt.logHost || null,
+    host: opt.host || null,
+    port: opt.port || 12201,
+    path: opt.path || '/gelf',
+    scope: opt.configureScope || null,
+    reservedKeys: opt.reservedKeys || [],
+  };
 
   (opt.enable || ['debug', 'log', 'warn', 'error']).forEach(type => {
     module.exports.enableGraylog(type);
@@ -146,10 +149,30 @@ function simpleLogger(logData) {
       ? 'O'
       : logData.messageType.substr(0, 1).toUpperCase();
 
+  //module.exports.nativeLog('DEBUG! simpleLogger()', {logData});
+
   let locMsg = prepareLog(logData.messages[0]);
 
   for (let i = 1; i < logData.messages.length; i++) {
-    locMsg.push(...['\n'], ...prepareLog(logData.messages[i]));
+    let message = logData.messages[i];
+
+    if (Object.prototype.toString.call(message) === '[object Object]') {
+      if (module.exports.options.grayLog.reservedKeys) {
+        const keys = Object.keys(message);
+        for (let k = 0; k < keys.length; k++) {
+          if (
+            module.exports.options.grayLog.reservedKeys.find(
+              reservedKey => reservedKey == keys[k]
+            )
+          ) {
+            delete message[keys[k]];
+          }
+        }
+      }
+    }
+    if (Object.keys(message).length) {
+      locMsg.push(...['\n'], ...prepareLog(message));
+    }
   }
 
   if (loggerTypes[logData.messageType]) {
